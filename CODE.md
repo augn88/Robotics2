@@ -15,6 +15,9 @@ const int GREEN_LED_PIN = 4;
 const int RED_LED_PIN = 5;
 const int BUTTON_PIN = 2;
 
+unsigned long last_button_press_time = 0;
+const long debounce_delay_ms = 100;
+
 float current_temp_celsius = 0.0;
 float high_threshold = 25.0; 
 float low_threshold = 15.0;  
@@ -127,19 +130,23 @@ void loop() {
   }
 
   if (g_flag_button_pressed) {
-    delay(50); 
     g_flag_button_pressed = false;
 
-    if (currentState == STATE_SET_HIGH || currentState == STATE_SET_LOW) {
-      save_settings_to_eeprom();
-    }
+    unsigned long current_time = millis();
 
-    switch (currentState) {
-      case STATE_NORMAL:   currentState = STATE_SET_HIGH; break;
-      case STATE_SET_HIGH: currentState = STATE_SET_LOW;  break;
-      case STATE_SET_LOW:  currentState = STATE_NORMAL;   break;
+    if (current_time - last_button_press_time > debounce_delay_ms) {
+      last_button_press_time = current_time;
+      if (currentState == STATE_SET_HIGH || currentState == STATE_SET_LOW) {
+        save_settings_to_eeprom();
+      } 
+
+      switch (currentState) {
+       case STATE_NORMAL:   currentState = STATE_SET_HIGH; break;
+       case STATE_SET_HIGH: currentState = STATE_SET_LOW;  break;
+       case STATE_SET_LOW:  currentState = STATE_NORMAL;   break;
+      }
+      while(Serial.read() >= 0); 
     }
-    while(Serial.read() >= 0); 
   }
 
   switch (currentState) {
